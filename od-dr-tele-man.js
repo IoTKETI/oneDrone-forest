@@ -15,7 +15,7 @@ const {mavlink10, MAVLink10Processor} = require('./mavlibrary/mavlink1');
 const {mavlink20, MAVLink20Processor} = require('./mavlibrary/mavlink2');
 
 let mavPort = null;
-let mavPortNum = '/dev/ttyAMA0';
+let mavPortNum = '/dev/ttyAMA1';
 let mavBaudrate = '115200';
 
 let my_sortie_name = 'unknown';
