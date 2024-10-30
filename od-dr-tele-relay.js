@@ -15,11 +15,11 @@ global.conf = require('./conf');
 
 let onem2m_client = require('./http_adn');
 
-let my_sortie_name = 'disarm';
+let my_sortie_name = 'unknown';
 
 // dr broker
 let dr_mqtt_client = null;
-let sub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/+/orig';
+let sub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/orig';
 let pub_gcs_topic = '/Mobius/' + conf.drone_info.gcs + '/GCS_Data/' + conf.drone_info.drone + '/orig';
 let sub_sortie_topic = '/od/tele/relay/man/sortie/orig';
 let sub_msw_data_topic = [];
@@ -721,10 +721,10 @@ function dr_mqtt_connect(serverip) {
             }
             else if (topic === sub_sortie_topic) {
                 let arr_message = message.toString().split(':');
-                my_sortie_name = arr_message[0];
+                let _my_sortie_name = arr_message[0];
                 let time_boot_ms = arr_message[1];
 
-                if (my_sortie_name === 'unknown-arm') { // 시작될 때 이미 드론이 시동이 걸린 상태
+                if (_my_sortie_name === 'unknown-arm') { // 시작될 때 이미 드론이 시동이 걸린 상태
                     // 모비우스 조회해서 현재 sortie를 찾아서 설정함
                     let path = 'http://' + conf.cse.host + ':' + conf.cse.port + '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone;
                     let cra = moment().utc().format('YYYYMMDD');
@@ -748,14 +748,14 @@ function dr_mqtt_connect(serverip) {
                         }
                     });
                 }
-                else if (my_sortie_name === 'unknown-disarm') { // 시작될 때 드론이 시동이 꺼진 상태
+                else if (_my_sortie_name === 'unknown-disarm') { // 시작될 때 드론이 시동이 꺼진 상태
                     // disarm sortie 적용
                     my_sortie_name = 'disarm';
 
                     pub_lte_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/' + my_sortie_name + '/orig';
                     my_cnt_name = my_parent_cnt_name + '/' + my_sortie_name;
                 }
-                else if (my_sortie_name === 'disarm-arm') { // 드론이 꺼진 상태에서 시동이 걸리는 상태
+                else if (_my_sortie_name === 'disarm-arm') { // 드론이 꺼진 상태에서 시동이 걸리는 상태
                     // 새로운 sortie 만들어 생성하고 설정
                     my_sortie_name = moment().format('YYYY_MM_DD_T_HH_mm');
 
@@ -765,7 +765,7 @@ function dr_mqtt_connect(serverip) {
                     onem2m_client.createSortieContainer(my_parent_cnt_name + '?rcn=0', my_sortie_name, time_boot_ms, 0, (rsc, res_body, count) => {
                     });
                 }
-                else if (my_sortie_name === 'arm-disarm') { // 드론이 시동 걸린 상태에서 시동이 꺼지는 상태
+                else if (_my_sortie_name === 'arm-disarm') { // 드론이 시동 걸린 상태에서 시동이 꺼지는 상태
                     // disarm sortie 적용
                     my_sortie_name = 'disarm';
 

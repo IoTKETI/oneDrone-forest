@@ -26,9 +26,11 @@ let my_system_id = 8;
 let dr_mqtt_client = null;
 // od-dr-tele-relay.js
 let sub_gcs_topic = '/Mobius/' + conf.drone_info.gcs + '/GCS_Data/' + conf.drone_info.drone + '/orig';
-let pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/disarm/orig';
+let pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/orig';
 
 let pub_sortie_topic = '/od/tele/relay/man/sortie/orig';
+
+let pub_parse_global_position_int = '/od/tele/broadcast/man/gpi/orig'; // '/TELE/drone/gpi';
 
 init();
 
@@ -372,7 +374,7 @@ function parseMavFromDrone(mavPacket) {
                         if (flag_base_mode === 3) {
                             my_sortie_name = 'arm';
 
-                            pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/' + my_sortie_name + '/orig';
+                            pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/orig';
 
                             dr_mqtt_client.publish(pub_sortie_topic, 'unknown-arm:' + fc.global_position_int.time_boot_ms.toString());
                         }
@@ -381,7 +383,7 @@ function parseMavFromDrone(mavPacket) {
                         flag_base_mode = 0;
                         my_sortie_name = 'disarm';
 
-                        pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/' + my_sortie_name + '/orig';
+                        pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/orig';
 
                         dr_mqtt_client.publish(pub_sortie_topic, 'unknown-disarm:0');
                     }
@@ -391,9 +393,8 @@ function parseMavFromDrone(mavPacket) {
                         flag_base_mode++;
                         if (flag_base_mode === 3) {
                             my_sortie_name = 'arm';
-                            my_sortie_name = moment().format('YYYY_MM_DD_T_HH_mm');
 
-                            pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/' + my_sortie_name + '/orig';
+                            pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/orig';
 
                             dr_mqtt_client.publish(pub_sortie_topic, 'disarm-arm:' + fc.global_position_int.time_boot_ms.toString());
                         }
@@ -411,29 +412,35 @@ function parseMavFromDrone(mavPacket) {
                         flag_base_mode = 0;
                         my_sortie_name = 'disarm';
 
-                        pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/' + my_sortie_name + '/orig';
+                        pub_drone_topic = '/Mobius/' + conf.drone_info.gcs + '/Drone_Data/' + conf.drone_info.drone + '/orig';
 
                         dr_mqtt_client.publish(pub_sortie_topic, 'arm-disarm:0');
                     }
                 }
             }
         }
-        else if (mavPacket._id === mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT) { // #33
-            fc.global_position_int = {};
-            fc.global_position_int.time_boot_ms = mavPacket.time_boot_ms;
-            fc.global_position_int.lat = mavPacket.lat;
-            fc.global_position_int.lon = mavPacket.lon;
-            fc.global_position_int.alt = mavPacket.alt;
-            fc.global_position_int.relative_alt = mavPacket.relative_alt;
-            fc.global_position_int.vx = mavPacket.vx;
-            fc.global_position_int.vy = mavPacket.vy;
-            fc.global_position_int.vz = mavPacket.vz;
-            fc.global_position_int.hdg = mavPacket.hdg;
 
-            reqDataStream = true;
-            clearTimeout(mav_t_id);
-            mav_t_id = null;
+        if (my_system_id !== 0 && (my_system_id === mavPacket._header.srcSystem)) {
+            if (mavPacket._id === mavlink.MAVLINK_MSG_ID_GLOBAL_POSITION_INT) { // #33
+                fc.global_position_int = {};
+                fc.global_position_int.time_boot_ms = mavPacket.time_boot_ms;
+                fc.global_position_int.lat = mavPacket.lat;
+                fc.global_position_int.lon = mavPacket.lon;
+                fc.global_position_int.alt = mavPacket.alt;
+                fc.global_position_int.relative_alt = mavPacket.relative_alt;
+                fc.global_position_int.vx = mavPacket.vx;
+                fc.global_position_int.vy = mavPacket.vy;
+                fc.global_position_int.vz = mavPacket.vz;
+                fc.global_position_int.hdg = mavPacket.hdg;
 
+                reqDataStream = true;
+                clearTimeout(mav_t_id);
+                mav_t_id = null;
+
+                if (dr_mqtt_client) {
+                    dr_mqtt_client.publish(pub_parse_global_position_int, JSON.stringify(fc.global_position_int));
+                }
+            }
         }
     }
     catch (e) {
